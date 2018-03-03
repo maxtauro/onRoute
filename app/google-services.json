@@ -1,0 +1,55 @@
+{
+  "project_info": {
+    "project_number": "582635133494",
+    "firebase_url": "https://onroute-2ab2d.firebaseio.com",
+    "project_id": "onroute-2ab2d",
+    "storage_bucket": "onroute-2ab2d.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:582635133494:android:6c68961fc5ed1455",
+        "android_client_info": {
+          "package_name": "e.maxtauro.onroute"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "582635133494-8knrnik7jf00k8s0ah460bvkl6koims1.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "e.maxtauro.onroute",
+            "certificate_hash": "2845adc18c221cdc3db0ce7285ae002e546469e7"
+          }
+        },
+        {
+          "client_id": "582635133494-0jntq3vstrp5pb9pchft7e69277vn76l.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCVCzDGKD6ltyvvcaCWXLNoMxHzwbQDMUA"
+        }
+      ],
+      "services": {
+        "analytics_service": {
+          "status": 1
+        },
+        "appinvite_service": {
+          "status": 2,
+          "other_platform_oauth_client": [
+            {
+              "client_id": "582635133494-0jntq3vstrp5pb9pchft7e69277vn76l.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        },
+        "ads_service": {
+          "status": 2
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
