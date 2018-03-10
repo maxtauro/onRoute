@@ -11,11 +11,17 @@ import android.widget.Toast;
 
 import com.firebase.ui.auth.AuthUI;
 
+import java.util.Arrays;
+import java.util.List;
+
 
 public class MainActivity extends AppCompatActivity {
     Context context;
     Button btnEmailLogin;
     Button btnFbookLogin;
+
+    List<AuthUI.IdpConfig> providers = Arrays.asList(
+            new AuthUI.IdpConfig.Builder(AuthUI.FACEBOOK_PROVIDER).build());
 
     private final static int LOGIN_PERMISSION=1000;
 
@@ -43,7 +49,13 @@ public class MainActivity extends AppCompatActivity {
         btnFbookLogin.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                Toast.makeText(context, "clicked fbook", Toast.LENGTH_SHORT).show();
+                //Toast.makeText(context, "clicked fbook", Toast.LENGTH_SHORT).show();
+
+                startActivityForResult(
+                        AuthUI.getInstance()
+                                .createSignInIntentBuilder()
+                                .setProviders(providers)
+                                .build(), LOGIN_PERMISSION);
             }
         });
 
