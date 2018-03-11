@@ -50,6 +50,7 @@ public class ListFriends extends AppCompatActivity implements GoogleApiClient.Co
     RecyclerView.LayoutManager layoutManager;
 
     //for search bar
+    //https://stackoverflow.com/questions/30369246/implementing-searchview-as-per-the-material-design-guidelines
     private MenuItem mSearchItem;
     private Toolbar mToolbar;
 
