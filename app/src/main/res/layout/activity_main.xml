@@ -34,7 +34,7 @@
         android:layout_marginEnd="103dp"
         android:layout_marginStart="103dp"
         android:layout_marginTop="37dp"
-        android:text="Get started with email"
+        android:text="Get started with userEmail"
         android:textAllCaps="false"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"

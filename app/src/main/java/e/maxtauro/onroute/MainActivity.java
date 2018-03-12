@@ -75,7 +75,7 @@ public class MainActivity extends AppCompatActivity {
             finish();
         }
         else{
-            Toast.makeText(this, "Login failed !!!", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "Invalid Signin", Toast.LENGTH_SHORT).show();
         }
     }
 }

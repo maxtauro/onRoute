@@ -5,22 +5,26 @@ package e.maxtauro.onroute;
  */
 
 public class User {
-    private String email,status;
+    private String userEmail, userStatus,userID;
 
     public User(){
-
     }
 
-    public User(String email, String status){
-        this.email = email;
-        this.status = status;
+    public User(String userEmail, String userID, String userStatus){
+        this.userEmail = userEmail;
+        this.userID = userID;
+        this.userStatus = userStatus;
     }
 
-    public String getEmail() {
-        return email;
+    public String getUserEmail() {
+        return userEmail;
     }
 
-    public String getStatus() {
-        return status;
+    public String getUserID() {
+        return userID;
+    }
+
+    public String getUserStatus() {
+        return userStatus;
     }
 }

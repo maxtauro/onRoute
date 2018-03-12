@@ -11,14 +11,15 @@ import android.os.Build;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
-import android.support.design.widget.CoordinatorLayout;
+import android.support.annotation.RequiresApi;
 import android.support.v4.content.ContextCompat;
 import android.support.v4.view.MenuItemCompat;
 import android.support.v7.app.AppCompatActivity;
+import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.Toolbar;
+import android.util.Log;
 import android.view.Menu;
-import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewAnimationUtils;
@@ -31,7 +32,12 @@ import com.firebase.ui.database.FirebaseRecyclerAdapter;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.location.LocationListener;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.database.DataSnapshot;
+import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
+import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.database.ValueEventListener;
 
 /**
  * Created by maxtauro on 2018-03-03.
@@ -46,7 +52,7 @@ public class ListFriends extends AppCompatActivity implements GoogleApiClient.Co
     FirebaseRecyclerAdapter<User,ListOnlineViewHolder> adapter;
 
     //View
-    RecyclerView listOnline;
+    RecyclerView listFriends;
     RecyclerView.LayoutManager layoutManager;
 
     //for search bar
@@ -60,9 +66,10 @@ public class ListFriends extends AppCompatActivity implements GoogleApiClient.Co
         setContentView(R.layout.activity_friend_list);
 
         //recycler view init
-        listOnline = (RecyclerView) findViewById(R.id.listOnline);
-        listOnline.setHasFixedSize(true);
-        listOnline.setLayoutManager(layoutManager);
+        listFriends = (RecyclerView) findViewById(R.id.listOnline);
+        listFriends.setHasFixedSize(true);
+        layoutManager = new LinearLayoutManager(this);
+        listFriends.setLayoutManager(layoutManager);
 
         //toolbar
         //Set toolbar and Logout/Join menu
@@ -70,6 +77,86 @@ public class ListFriends extends AppCompatActivity implements GoogleApiClient.Co
         mToolbar.setTitle("onRoute System");
         setSupportActionBar(mToolbar);
 
+        //Firebase
+        locations  = FirebaseDatabase.getInstance().getReference("Locations");
+        onlineRef = FirebaseDatabase.getInstance().getReference().child(".info/connected");
+        //create new child name lastOnline
+        counterRef = FirebaseDatabase.getInstance().getReference("lastOnline");
+        //create new child in last online where key is user id
+        currentUserRef = FirebaseDatabase.getInstance().getReference("lastOnline").child(FirebaseAuth.getInstance().getCurrentUser().getUid());
+
+        setupSystem();
+    }
+
+    private void setupSystem() {
+        onlineRef.addValueEventListener(new ValueEventListener() {
+            @Override
+            public void onDataChange(DataSnapshot dataSnapshot) {
+                if(dataSnapshot.getValue(Boolean.class)){
+                    currentUserRef.onDisconnect().removeValue(); //cleans up old value
+
+                    counterRef.child(FirebaseAuth.getInstance().getCurrentUser().getUid())
+                            .setValue(new User(FirebaseAuth.getInstance().getCurrentUser().getEmail(),
+                                                FirebaseAuth.getInstance().getCurrentUser().getUid(),
+                                                "Online"));
+                    adapter.notifyDataSetChanged();
+                }
+            }
+
+            @Override
+            public void onCancelled(DatabaseError databaseError) {
+
+            }
+        });
+
+        counterRef.addValueEventListener(new ValueEventListener() {
+            @Override
+            public void onDataChange(DataSnapshot dataSnapshot) {
+                for (DataSnapshot postSnapshot:dataSnapshot.getChildren()){
+                    User user = postSnapshot.getValue(User.class);
+                    Log.d("LOG",user.getUserEmail()+" is " + user.getUserStatus());
+                }
+            }
+
+            @Override
+            public void onCancelled(DatabaseError databaseError) {
+
+            }
+        });
+
+        updateList();
+    }
+
+    private void updateList() {
+        adapter = new FirebaseRecyclerAdapter<User, ListOnlineViewHolder>(
+                User.class,
+                R.layout.user_layout,
+                ListOnlineViewHolder.class,
+                counterRef
+        ) {
+            @Override
+            protected void populateViewHolder(ListOnlineViewHolder viewHolder, final User model, int position) {
+                viewHolder.txtEmail.setText(model.getUserEmail());
+
+                viewHolder.itemClickListener = new ItemClickListener() {
+                    @Override
+                    public void onClick(View view, int position) {
+                        Log.d("Map should open", "");
+
+                        //if model is user don't click
+                        if(!isCurrentUser(model)){
+                            //start the map logic
+                        }
+                    }
+                };
+            }
+        };
+        adapter.notifyDataSetChanged();
+        listFriends.setAdapter(adapter);
+    }
+
+    private boolean isCurrentUser(User model) {
+        return model.getUserEmail().equals(FirebaseAuth.getInstance().getCurrentUser().getEmail());
     }
 
     @Override
@@ -167,6 +254,7 @@ public class ListFriends extends AppCompatActivity implements GoogleApiClient.Co
         }
     }
 
+    @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN_MR1)
     private boolean isRtl(Resources resources) {
         return resources.getConfiguration().getLayoutDirection() == View.LAYOUT_DIRECTION_RTL;
     }
