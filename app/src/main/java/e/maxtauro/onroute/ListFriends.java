@@ -1,9 +1,13 @@
 package e.maxtauro.onroute;
 
+import android.*;
+import android.Manifest;
 import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
 import android.annotation.SuppressLint;
 import android.content.Context;
+import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.content.res.Resources;
 import android.content.res.TypedArray;
 import android.location.Location;
@@ -12,6 +16,7 @@ import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.annotation.RequiresApi;
+import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.support.v4.view.MenuItemCompat;
 import android.support.v7.app.AppCompatActivity;
@@ -27,11 +32,15 @@ import android.view.animation.AlphaAnimation;
 import android.view.animation.Animation;
 import android.view.animation.AnimationSet;
 import android.view.animation.TranslateAnimation;
+import android.widget.Toast;
 
 import com.firebase.ui.database.FirebaseRecyclerAdapter;
 import com.google.android.gms.common.ConnectionResult;
+import com.google.android.gms.common.GooglePlayServicesUtil;
 import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.location.LocationListener;
+import com.google.android.gms.location.LocationRequest;
+import com.google.android.gms.location.LocationServices;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
@@ -60,6 +69,17 @@ public class ListFriends extends AppCompatActivity implements GoogleApiClient.Co
     private MenuItem mSearchItem;
     private Toolbar mToolbar;
 
+    //For Locations
+    private static final int MY_PERMISSION_REQUEST_CODE = 7171;
+    private static final int PLAY_SERVICES_RES_REQUEST = 7172;
+    private LocationRequest mLocationRequest;
+    private GoogleApiClient mGoogleApiClient;
+    private Location mLastLocation;
+
+    private static int UPDATE_INTERVAL = 5000;
+    private static int FASTEST_INTERVAL = 3000;
+    private static int DISTANCE = 10;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -85,7 +105,77 @@ public class ListFriends extends AppCompatActivity implements GoogleApiClient.Co
         //create new child in last online where key is user id
         currentUserRef = FirebaseDatabase.getInstance().getReference("lastOnline").child(FirebaseAuth.getInstance().getCurrentUser().getUid());
 
+        if(ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED &&
+                ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+
+            ActivityCompat.requestPermissions(this, new String[]{
+                            Manifest.permission.ACCESS_COARSE_LOCATION,
+                            Manifest.permission.ACCESS_FINE_LOCATION},
+                    MY_PERMISSION_REQUEST_CODE);
+        }
+        else {
+            if(checkPlayServices()){
+                buildGoogleApiClient();
+                createLocationRequest();
+                displayLocation();
+            }
+        }
+
         setupSystem();
+    }
+
+    private void displayLocation() {
+        if(ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED  &&
+                ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED){
+            return;
+        }
+        mLastLocation = LocationServices.FusedLocationApi.getLastLocation(mGoogleApiClient);
+        if (mLastLocation != null){
+            //update to firebase
+            locations.child(FirebaseAuth.getInstance().getCurrentUser().getUid())
+                    .setValue(new Tracking(FirebaseAuth.getInstance().getCurrentUser().getEmail(),
+                            FirebaseAuth.getInstance().getCurrentUser().getUid(),
+                            String.valueOf(mLastLocation.getLatitude()),
+                            String.valueOf(mLastLocation.getLongitude())
+                    ));
+        }
+        else{
+            //Toast.makeText(this, "Couldn't get the location", Toast.LENGTH_SHORT).show();
+            Log.d("TEST", "Couldn't load location");
+        }
+
+    }
+
+    private void createLocationRequest() {
+        mLocationRequest = new LocationRequest();
+        mLocationRequest.setInterval(UPDATE_INTERVAL);
+        mLocationRequest.setFastestInterval(FASTEST_INTERVAL);
+        mLocationRequest.setSmallestDisplacement(DISTANCE);
+        mLocationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
+    }
+
+    private void buildGoogleApiClient() {
+        mGoogleApiClient = new GoogleApiClient.Builder(this)
+                .addConnectionCallbacks(this)
+                .addOnConnectionFailedListener(this)
+                .addApi(LocationServices.API)
+                .build();
+        mGoogleApiClient.connect();
+    }
+
+    private boolean checkPlayServices() {
+        int resultCode = GooglePlayServicesUtil.isGooglePlayServicesAvailable(this);
+        if(resultCode != ConnectionResult.SUCCESS){
+            if(GooglePlayServicesUtil.isUserRecoverableError(resultCode)){
+                GooglePlayServicesUtil.getErrorDialog(resultCode, this, PLAY_SERVICES_RES_REQUEST).show();
+            }
+            else {
+                Toast.makeText(this, "This device is not supported", Toast.LENGTH_SHORT).show();
+                finish();
+            }
+            return false;
+        }
+        return true;
     }
 
     private void setupSystem() {
@@ -145,7 +235,11 @@ public class ListFriends extends AppCompatActivity implements GoogleApiClient.Co
 
                         //if model is user don't click
                         if(!isCurrentUser(model)){
-                            //start the map logic
+                            Intent mapIntent = new Intent (ListFriends.this, MapTrackingActivity.class);
+                            mapIntent.putExtra("email", model.getUserEmail()); //Todo change to user ID
+                            mapIntent.putExtra("lat", mLastLocation.getLatitude());
+                            mapIntent.putExtra("lng", mLastLocation.getLongitude());
+                            startActivity(mapIntent);
                         }
                     }
                 };
@@ -271,12 +365,21 @@ public class ListFriends extends AppCompatActivity implements GoogleApiClient.Co
 
     @Override
     public void onConnected(@Nullable Bundle bundle) {
+        displayLocation();
+        startLocationUpdates();
+    }
 
+    private void startLocationUpdates() {
+        if(ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED  &&
+                ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED){
+            return;
+        }
+        LocationServices.FusedLocationApi.requestLocationUpdates(mGoogleApiClient,mLocationRequest,this);
     }
 
     @Override
     public void onConnectionSuspended(int i) {
-
+        mGoogleApiClient.connect();
     }
 
     @Override
@@ -285,7 +388,27 @@ public class ListFriends extends AppCompatActivity implements GoogleApiClient.Co
     }
 
     @Override
+    protected void onStart() {
+        super.onStart();
+        if(mGoogleApiClient != null) mGoogleApiClient.connect();
+    }
+
+    @Override
+    protected void onStop() {
+        if(mGoogleApiClient != null) mGoogleApiClient.disconnect();
+        super.onStop();
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        checkPlayServices();
+    }
+
+    @Override
     public void onLocationChanged(Location location) {
+        mLastLocation = location;
+        displayLocation();
 
     }
 }

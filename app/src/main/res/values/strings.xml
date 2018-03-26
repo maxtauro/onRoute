@@ -5,4 +5,6 @@
     <!-- Facebook application ID and custom URL scheme (app ID prefixed by 'fb'). -->
     <string name="facebook_application_id" translatable="false">171416973490615</string>
     <string name="facebook_login_protocol_scheme" translatable="false">fb171416973490615</string>
+
+    <string name="title_activity_tracking">Map</string>
 </resources>
