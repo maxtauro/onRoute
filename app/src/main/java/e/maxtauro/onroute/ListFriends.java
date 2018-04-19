@@ -1,6 +1,5 @@
 package e.maxtauro.onroute;
 
-import android.*;
 import android.Manifest;
 import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
@@ -16,7 +15,9 @@ import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.annotation.RequiresApi;
+import android.support.design.widget.FloatingActionButton;
 import android.support.v4.app.ActivityCompat;
+import android.support.v4.app.DialogFragment;
 import android.support.v4.content.ContextCompat;
 import android.support.v4.view.MenuItemCompat;
 import android.support.v7.app.AppCompatActivity;
@@ -42,11 +43,11 @@ import com.google.android.gms.location.LocationListener;
 import com.google.android.gms.location.LocationRequest;
 import com.google.android.gms.location.LocationServices;
 import com.google.firebase.auth.FirebaseAuth;
-import com.google.firebase.database.DataSnapshot;
-import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
-import com.google.firebase.database.ValueEventListener;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Created by maxtauro on 2018-03-03.
@@ -56,18 +57,25 @@ public class ListFriends extends AppCompatActivity implements GoogleApiClient.Co
         GoogleApiClient.OnConnectionFailedListener,
         LocationListener {
 
+
     //Firebase
-    DatabaseReference onlineRef,currentUserRef,counterRef,locations;
+    DatabaseReference onlineRef,currentUserRef,counterRef, users;
+    FirebaseHelper firebaseHelper = new FirebaseHelper();
     FirebaseRecyclerAdapter<User,ListOnlineViewHolder> adapter;
 
     //View
-    RecyclerView listFriends;
+    RecyclerView listFriendsRecyclerView;
     RecyclerView.LayoutManager layoutManager;
 
     //for search bar
     //https://stackoverflow.com/questions/30369246/implementing-searchview-as-per-the-material-design-guidelines
     private MenuItem mSearchItem;
     private Toolbar mToolbar;
+
+    private FloatingActionButton addFriendBtn;
+    private DialogFragment dialog_AddFriend = new DialogFragmentAddFriend();
+    List<String> testList = new ArrayList<String>();
+
 
     //For Locations
     private static final int MY_PERMISSION_REQUEST_CODE = 7171;
@@ -86,27 +94,30 @@ public class ListFriends extends AppCompatActivity implements GoogleApiClient.Co
         setContentView(R.layout.activity_friend_list);
 
         //recycler view init
-        listFriends = (RecyclerView) findViewById(R.id.listOnline);
-        listFriends.setHasFixedSize(true);
+        listFriendsRecyclerView = (RecyclerView) findViewById(R.id.listOnline);
+        listFriendsRecyclerView.setHasFixedSize(true);
         layoutManager = new LinearLayoutManager(this);
-        listFriends.setLayoutManager(layoutManager);
+        listFriendsRecyclerView.setLayoutManager(layoutManager);
 
         //toolbar
         //Set toolbar and Logout/Join menu
         mToolbar = (Toolbar)findViewById(R.id.toolbar);
-        mToolbar.setTitle("onRoute System");
+        mToolbar.setTitle("onRoute");
         setSupportActionBar(mToolbar);
 
+        testList.add("friend 1");
+        testList.add("friend 2");
+
         //Firebase
-        locations  = FirebaseDatabase.getInstance().getReference("Locations");
+        //users = FirebaseDatabase.getInstance().getReference("Users");
+        users = FirebaseDatabase.getInstance().getReference("Users");
         onlineRef = FirebaseDatabase.getInstance().getReference().child(".info/connected");
         //create new child name lastOnline
         counterRef = FirebaseDatabase.getInstance().getReference("lastOnline");
         //create new child in last online where key is user id
         currentUserRef = FirebaseDatabase.getInstance().getReference("lastOnline").child(FirebaseAuth.getInstance().getCurrentUser().getUid());
 
-        if(ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED &&
-                ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+        if(checkPermissions()) {
 
             ActivityCompat.requestPermissions(this, new String[]{
                             Manifest.permission.ACCESS_COARSE_LOCATION,
@@ -121,26 +132,29 @@ public class ListFriends extends AppCompatActivity implements GoogleApiClient.Co
             }
         }
 
-        setupSystem();
+        addFriendBtn = (FloatingActionButton) findViewById(R.id.add_friend_button);
+        addFriendBtn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                dialog_AddFriend.show(getSupportFragmentManager(), "add friend dialog");
+            }
+        });
+
+        firebaseHelper.setupSystem();
+        updateList();
+        displayLocation();
     }
 
     private void displayLocation() {
-        if(ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED  &&
-                ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED){
+        if(checkPermissions()){
             return;
         }
         mLastLocation = LocationServices.FusedLocationApi.getLastLocation(mGoogleApiClient);
         if (mLastLocation != null){
             //update to firebase
-            locations.child(FirebaseAuth.getInstance().getCurrentUser().getUid())
-                    .setValue(new Tracking(FirebaseAuth.getInstance().getCurrentUser().getEmail(),
-                            FirebaseAuth.getInstance().getCurrentUser().getUid(),
-                            String.valueOf(mLastLocation.getLatitude()),
-                            String.valueOf(mLastLocation.getLongitude())
-                    ));
+            firebaseHelper.updateCurrentUserRef(mLastLocation);
         }
         else{
-            //Toast.makeText(this, "Couldn't get the location", Toast.LENGTH_SHORT).show();
             Log.d("TEST", "Couldn't load location");
         }
 
@@ -178,44 +192,6 @@ public class ListFriends extends AppCompatActivity implements GoogleApiClient.Co
         return true;
     }
 
-    private void setupSystem() {
-        onlineRef.addValueEventListener(new ValueEventListener() {
-            @Override
-            public void onDataChange(DataSnapshot dataSnapshot) {
-                if(dataSnapshot.getValue(Boolean.class)){
-                    currentUserRef.onDisconnect().removeValue(); //cleans up old value
-
-                    counterRef.child(FirebaseAuth.getInstance().getCurrentUser().getUid())
-                            .setValue(new User(FirebaseAuth.getInstance().getCurrentUser().getEmail(),
-                                                FirebaseAuth.getInstance().getCurrentUser().getUid(),
-                                                "Online"));
-                    adapter.notifyDataSetChanged();
-                }
-            }
-
-            @Override
-            public void onCancelled(DatabaseError databaseError) {
-
-            }
-        });
-
-        counterRef.addValueEventListener(new ValueEventListener() {
-            @Override
-            public void onDataChange(DataSnapshot dataSnapshot) {
-                for (DataSnapshot postSnapshot:dataSnapshot.getChildren()){
-                    User user = postSnapshot.getValue(User.class);
-                    Log.d("LOG",user.getUserEmail()+" is " + user.getUserStatus());
-                }
-            }
-
-            @Override
-            public void onCancelled(DatabaseError databaseError) {
-
-            }
-        });
-
-        updateList();
-    }
 
     private void updateList() {
         adapter = new FirebaseRecyclerAdapter<User, ListOnlineViewHolder>(
@@ -234,7 +210,7 @@ public class ListFriends extends AppCompatActivity implements GoogleApiClient.Co
                         Log.d("Map should open", "");
 
                         //if model is user don't click
-                        if(!isCurrentUser(model)){
+                        if(!isCurrentUser(model) && mLastLocation != null){
                             Intent mapIntent = new Intent (ListFriends.this, MapTrackingActivity.class);
                             mapIntent.putExtra("email", model.getUserEmail()); //Todo change to user ID
                             mapIntent.putExtra("lat", mLastLocation.getLatitude());
@@ -246,7 +222,8 @@ public class ListFriends extends AppCompatActivity implements GoogleApiClient.Co
             }
         };
         adapter.notifyDataSetChanged();
-        listFriends.setAdapter(adapter);
+        listFriendsRecyclerView.setAdapter(adapter);
+        firebaseHelper.setAdapter(adapter);
     }
 
     private boolean isCurrentUser(User model) {
@@ -361,7 +338,10 @@ public class ListFriends extends AppCompatActivity implements GoogleApiClient.Co
         return result;
     }
 
-
+    public void addFriend(final String userId){
+        firebaseHelper.addFriend(userId);
+        displayLocation();
+    }
 
     @Override
     public void onConnected(@Nullable Bundle bundle) {
@@ -370,11 +350,15 @@ public class ListFriends extends AppCompatActivity implements GoogleApiClient.Co
     }
 
     private void startLocationUpdates() {
-        if(ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED  &&
-                ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED){
+        if(checkPermissions()){
             return;
         }
         LocationServices.FusedLocationApi.requestLocationUpdates(mGoogleApiClient,mLocationRequest,this);
+    }
+
+    private boolean checkPermissions(){
+        return (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED  &&
+                ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED);
     }
 
     @Override

@@ -63,7 +63,7 @@ public class MapTrackingActivity extends FragmentActivity implements OnMapReadyC
             public void onDataChange(DataSnapshot dataSnapshot) {
                 for(DataSnapshot postSnapshot:dataSnapshot.getChildren()){
 
-                    Tracking tracking = postSnapshot.getValue(Tracking.class);
+                    User trackingUser = postSnapshot.getValue(User.class);
 
                     //Create location for user
                     Location currentUser = new Location("");
@@ -71,8 +71,8 @@ public class MapTrackingActivity extends FragmentActivity implements OnMapReadyC
                     currentUser.setLongitude(lng);
 
                     //Add marker for friend
-                    LatLng friendLatLng = new LatLng(Double.parseDouble(tracking.getLat()),
-                                                        Double.parseDouble(tracking.getLng()));
+                    LatLng friendLatLng = new LatLng(Double.parseDouble(trackingUser.getLat()),
+                                                        Double.parseDouble(trackingUser.getLng()));
 
                     //create location for friend
                     Location friendLocation = new Location("");
@@ -85,7 +85,7 @@ public class MapTrackingActivity extends FragmentActivity implements OnMapReadyC
                     //Add marker for friend
                     mMap.addMarker(new MarkerOptions()
                                     .position(friendLatLng)
-                                    .title(tracking.getEmail())
+                                    .title(trackingUser.getUserEmail())
                                     //.snippet()
                                     .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_BLUE)));
                     mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(lat,lng), 12.0f));
