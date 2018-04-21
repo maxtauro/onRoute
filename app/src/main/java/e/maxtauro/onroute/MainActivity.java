@@ -10,6 +10,8 @@ import android.widget.Button;
 import android.widget.Toast;
 
 import com.firebase.ui.auth.AuthUI;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
 
 import java.util.Arrays;
 import java.util.List;
@@ -35,7 +37,6 @@ public class MainActivity extends AppCompatActivity {
         btnEmailLogin.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                //Toast.makeText(context, "clicked email", Toast.LENGTH_SHORT).show();
 
                 startActivityForResult(
                         AuthUI.getInstance()
@@ -49,7 +50,6 @@ public class MainActivity extends AppCompatActivity {
         btnFbookLogin.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                //Toast.makeText(context, "clicked fbook", Toast.LENGTH_SHORT).show();
 
                 startActivityForResult(
                         AuthUI.getInstance()
@@ -59,6 +59,13 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
+
+        FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
+        if (user != null) {
+            Intent intent = new Intent(MainActivity.this, ListFriends.class);
+            startActivity(intent);
+            finish();
+        }
     }
 
     @Override

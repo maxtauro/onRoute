@@ -74,7 +74,6 @@ public class ListFriends extends AppCompatActivity implements GoogleApiClient.Co
 
     private FloatingActionButton addFriendBtn;
     private DialogFragment dialog_AddFriend = new DialogFragmentAddFriend();
-    List<String> testList = new ArrayList<String>();
 
 
     //For Locations
@@ -105,8 +104,6 @@ public class ListFriends extends AppCompatActivity implements GoogleApiClient.Co
         mToolbar.setTitle("onRoute");
         setSupportActionBar(mToolbar);
 
-        testList.add("friend 1");
-        testList.add("friend 2");
 
         //Firebase
         //users = FirebaseDatabase.getInstance().getReference("Users");
