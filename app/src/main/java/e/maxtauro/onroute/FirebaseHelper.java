@@ -19,7 +19,7 @@ public class FirebaseHelper {
 
     private User currentUser;
 
-    public DatabaseReference onlineRef,currentUserRef,counterRef, currentUserOnlineRef;
+    public DatabaseReference onlineRef, currentUserRef, listOnlineRef, currentUserOnlineRef;
 
     public DatabaseReference users, friendList;
 
@@ -31,14 +31,14 @@ public class FirebaseHelper {
         friendList = getFriendList();
 
         onlineRef = FirebaseDatabase.getInstance().getReference().child(".info/connected");
-        //create new child name lastOnline
-        counterRef = FirebaseDatabase.getInstance().getReference("lastOnline");
-        //create new child in last online where key is user id
-        currentUserOnlineRef = FirebaseDatabase.getInstance().getReference("lastOnline").child(FirebaseAuth.getInstance().getCurrentUser().getUid());
+        //create new child name listOnline
+        listOnlineRef = FirebaseDatabase.getInstance().getReference("listOnline");
+        //create new child in list online where key is user id
+        currentUserOnlineRef = FirebaseDatabase.getInstance().getReference("listOnline").child(FirebaseAuth.getInstance().getCurrentUser().getUid());
 
     }
 
-    public void updateCurrentUserRef(final Location mLastLocation){
+    public void updateCurrentUserRef(final Location mLastLocation) {
 
         final String userName = getUserName(FirebaseAuth.getInstance().getCurrentUser().getEmail());
 
@@ -51,10 +51,7 @@ public class FirebaseHelper {
         users.addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
             public void onDataChange(DataSnapshot dataSnapshot) {
-                if (dataSnapshot.child(userName).exists()){
-
-                }
-                else{
+                if (!dataSnapshot.child(userName).exists()){
                     users.child(userName).setValue(currentUser);
                 }
             }
@@ -63,7 +60,7 @@ public class FirebaseHelper {
 
             }
         });
-        currentUserRef = users.child(userName);
+
     }
 
     public void setupSystem(){
@@ -71,8 +68,9 @@ public class FirebaseHelper {
             @Override
             public void onDataChange(DataSnapshot dataSnapshot) {
                 if(dataSnapshot.getValue(Boolean.class)){
+                    currentUserOnlineRef.onDisconnect().removeValue();
 
-                    counterRef.child(FirebaseAuth.getInstance().getCurrentUser().getUid())
+                    listOnlineRef.child(FirebaseAuth.getInstance().getCurrentUser().getUid())
                             .setValue(new User(FirebaseAuth.getInstance().getCurrentUser().getEmail(),
                                     FirebaseAuth.getInstance().getCurrentUser().getUid(),
                                     "Online","0","0"));
@@ -81,12 +79,10 @@ public class FirebaseHelper {
             }
 
             @Override
-            public void onCancelled(DatabaseError databaseError) {
-
-            }
+            public void onCancelled(DatabaseError databaseError) {}
         });
 
-        counterRef.addValueEventListener(new ValueEventListener() {
+        listOnlineRef.addValueEventListener(new ValueEventListener() {
             @Override
             public void onDataChange(DataSnapshot dataSnapshot) {
                 for (DataSnapshot postSnapshot:dataSnapshot.getChildren()){

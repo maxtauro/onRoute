@@ -28,6 +28,8 @@ public class User {
         return userEmail;
     }
 
+    //public String
+
     public void setUserEmail(String userEmail) {
         this.userEmail = userEmail;
     }

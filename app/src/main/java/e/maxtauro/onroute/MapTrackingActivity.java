@@ -28,7 +28,7 @@ public class MapTrackingActivity extends FragmentActivity implements OnMapReadyC
 
     private GoogleMap mMap;
     private String email;
-    DatabaseReference locations;
+    DatabaseReference usersRef;
     Double lat, lng;
 
     @Override
@@ -42,7 +42,7 @@ public class MapTrackingActivity extends FragmentActivity implements OnMapReadyC
         mapFragment.getMapAsync(this);
 
         //Firebase Ref
-        locations = FirebaseDatabase.getInstance().getReference("Locations");
+        usersRef = FirebaseDatabase.getInstance().getReference("Users");
 
         //Get intent
         if(getIntent() != null){
@@ -56,7 +56,8 @@ public class MapTrackingActivity extends FragmentActivity implements OnMapReadyC
     }
 
     private void loadLocationForThisUser(String email) {
-        Query userLocation = locations.orderByChild("email").equalTo(email);
+
+        Query userLocation = usersRef.orderByChild("userEmail").equalTo(email);
 
         userLocation.addValueEventListener(new ValueEventListener() {
             @Override

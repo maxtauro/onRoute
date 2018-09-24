@@ -46,20 +46,20 @@ import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 
-import java.util.ArrayList;
-import java.util.List;
-
 /**
  * Created by maxtauro on 2018-03-03.
  */
 
-public class ListFriends extends AppCompatActivity implements GoogleApiClient.ConnectionCallbacks,
+public class ListFriends
+        extends
+        AppCompatActivity
+        implements
+        GoogleApiClient.ConnectionCallbacks,
         GoogleApiClient.OnConnectionFailedListener,
         LocationListener {
 
-
     //Firebase
-    DatabaseReference onlineRef,currentUserRef,counterRef, users;
+    DatabaseReference onlineRef,currentUserRef, listOnlineRef, users;
     FirebaseHelper firebaseHelper = new FirebaseHelper();
     FirebaseRecyclerAdapter<User,ListOnlineViewHolder> adapter;
 
@@ -74,7 +74,6 @@ public class ListFriends extends AppCompatActivity implements GoogleApiClient.Co
 
     private FloatingActionButton addFriendBtn;
     private DialogFragment dialog_AddFriend = new DialogFragmentAddFriend();
-
 
     //For Locations
     private static final int MY_PERMISSION_REQUEST_CODE = 7171;
@@ -104,15 +103,13 @@ public class ListFriends extends AppCompatActivity implements GoogleApiClient.Co
         mToolbar.setTitle("onRoute");
         setSupportActionBar(mToolbar);
 
-
         //Firebase
-        //users = FirebaseDatabase.getInstance().getReference("Users");
         users = FirebaseDatabase.getInstance().getReference("Users");
         onlineRef = FirebaseDatabase.getInstance().getReference().child(".info/connected");
-        //create new child name lastOnline
-        counterRef = FirebaseDatabase.getInstance().getReference("lastOnline");
-        //create new child in last online where key is user id
-        currentUserRef = FirebaseDatabase.getInstance().getReference("lastOnline").child(FirebaseAuth.getInstance().getCurrentUser().getUid());
+        //create new child name listOnline
+        listOnlineRef = FirebaseDatabase.getInstance().getReference("listOnline");
+        //create new child in list online where key is user id
+        currentUserRef = FirebaseDatabase.getInstance().getReference("listOnline").child(FirebaseAuth.getInstance().getCurrentUser().getUid());
 
         if(checkPermissions()) {
 
@@ -122,7 +119,7 @@ public class ListFriends extends AppCompatActivity implements GoogleApiClient.Co
                     MY_PERMISSION_REQUEST_CODE);
         }
         else {
-            if(checkPlayServices()){
+            if(checkPlayServices()) {
                 buildGoogleApiClient();
                 createLocationRequest();
                 displayLocation();
@@ -142,6 +139,7 @@ public class ListFriends extends AppCompatActivity implements GoogleApiClient.Co
         displayLocation();
     }
 
+    @SuppressLint("MissingPermission")
     private void displayLocation() {
         if(checkPermissions()){
             return;
@@ -195,7 +193,7 @@ public class ListFriends extends AppCompatActivity implements GoogleApiClient.Co
                 User.class,
                 R.layout.user_layout,
                 ListOnlineViewHolder.class,
-                counterRef
+                listOnlineRef
         ) {
             @Override
             protected void populateViewHolder(ListOnlineViewHolder viewHolder, final User model, int position) {
@@ -346,6 +344,7 @@ public class ListFriends extends AppCompatActivity implements GoogleApiClient.Co
         startLocationUpdates();
     }
 
+    @SuppressLint("MissingPermission")
     private void startLocationUpdates() {
         if(checkPermissions()){
             return;
